@@ -1,44 +1,13 @@
-//
-//  ContentView.swift
-//  gammalighttherapy
-//
-//  Created by Tamilarasan on 30/09/24.
-//
-
 import SwiftUI
 import AVFoundation
 
-struct FlashingScreenView: View {
-    @State private var isVisible = true
-    private let flashRate: Double = 1.0 / 40.0
-    
-    var body: some View {
-        ZStack {
-            if isVisible {
-                Color.white // Example: Red color that flashes
-            } else {
-                Color.black // Example: Black color that alternates with red
-            }
-        }
-        .edgesIgnoringSafeArea(.all)
-        .onAppear {
-            startFlashing()
-        }
-    }
-    
-    // Function to start the flashing effect
-    private func startFlashing() {
-        Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { timer in
-            isVisible.toggle()  // Toggle visibility to create flashing effect
-        }
-    }
-}
-
 struct FlashingView: View {
     @State private var isFlashing = false
+    @State private var flashTimer: Timer?
+    @State private var audioPlayerNode: AVAudioPlayerNode?
     private let flashRate: Double = 1.0 / 40.0
-    var audioPlayer: AVAudioPlayer?
-    
+    private var audioEngine = AVAudioEngine()
+
     var body: some View {
         VStack {
             Toggle("Enable Flashing", isOn: $isFlashing)
@@ -47,48 +16,96 @@ struct FlashingView: View {
         .onChange(of: isFlashing) { newValue in
             if newValue {
                 startFlashing()
+                play40HzSound()
             } else {
                 stopFlashing()
+                stopSound()
             }
         }
     }
-    
-    // Start the flashlight flashing effect
+
     private func startFlashing() {
-        let queue = DispatchQueue.global(qos: .userInitiated)
-        queue.async {
-            while isFlashing {
-                toggleTorch(on: true)
-                usleep(UInt32(flashRate * 1_000_000)) // 25ms delay
-                toggleTorch(on: false)
-                usleep(UInt32(flashRate * 1_000_000)) // 25ms delay
+        flashTimer = Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { _ in
+            toggleTorch(on: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.flashRate) {
+                self.toggleTorch(on: false)
             }
         }
     }
-    
-    // Stop the flashing
+
     private func stopFlashing() {
-        toggleTorch(on: false) // Ensure the torch is off when stopping
+        toggleTorch(on: false)
+        flashTimer?.invalidate()
+        flashTimer = nil
     }
-    
 
-       func stopSound() {
-           audioPlayer?.stop()
-       }
+    private func stopSound() {
+        audioPlayerNode?.stop()
+        audioEngine.stop()
+    }
 
-    // Helper function to control the flashlight (torch)
     private func toggleTorch(on: Bool) {
         guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
         do {
             try device.lockForConfiguration()
             if on {
-                try device.setTorchModeOn(level: 1.0) // Set torch on at max brightness
+                try device.setTorchModeOn(level: 1.0)
             } else {
-                device.torchMode = .off // Turn off torch
+                device.torchMode = .off
             }
             device.unlockForConfiguration()
         } catch {
             print("Torch could not be used: \(error)")
+        }
+    }
+
+    private func configureAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+        } catch {
+            print("Failed to set up audio session: \(error)")
+        }
+    }
+
+    private func play40HzSound() {
+        configureAudioSession()
+
+        let sampleRate = 44100.0
+        let frequency = 40.0
+        let amplitude = 0.5
+        let duration = 1.0
+        let frameCount = Int(sampleRate * duration)
+
+        var soundData = [Float](repeating: 0, count: frameCount)
+
+        for i in 0..<frameCount {
+            let sampleTime = Double(i) / sampleRate
+            let sineWave = sin(2.0 * .pi * frequency * sampleTime)
+            soundData[i] = Float(sineWave) * Float(amplitude)
+        }
+
+        let audioFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
+        let buffer = AVAudioPCMBuffer(pcmFormat: audioFormat!, frameCapacity: AVAudioFrameCount(frameCount))!
+        buffer.frameLength = AVAudioFrameCount(frameCount)
+
+        let channelData = buffer.floatChannelData![0]
+        for i in 0..<frameCount {
+            channelData[i] = soundData[i]
+        }
+
+        let playerNode = AVAudioPlayerNode()
+        audioEngine.attach(playerNode)
+        audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: buffer.format)
+
+        do {
+            try audioEngine.start()
+            playerNode.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+            playerNode.play()
+            self.audioPlayerNode = playerNode
+        } catch {
+            print("Failed to start audio engine: \(error)")
         }
     }
 }
