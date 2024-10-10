@@ -33,7 +33,7 @@ struct FlashingView: View {
                         }) {
                             Image(systemName: isFlashing ? "lightbulb.fill" : "lightbulb")
                                 .resizable()
-                                .frame(width: 30, height: 40)
+                                .frame(width: 25, height: 32)
                                 .foregroundColor(isFlashing ? .yellow : Color(hex: "f0f0f0"))
                                 .padding()
                         }
@@ -48,7 +48,7 @@ struct FlashingView: View {
                         }) {
                             Image(systemName: isAudioPlaying ? "speaker.fill" : "speaker.slash.fill")
                                 .resizable()
-                                .frame(width: 40, height: 40)
+                                .frame(width: 32, height: 32)
                                 .foregroundColor(isAudioPlaying ? .blue : Color(hex: "f0f0f0"))
                                 .padding()
                         }
@@ -67,7 +67,7 @@ struct FlashingView: View {
                         }) {
                             Image(isFlashingAndAudio ? "competence" : "competence-off")
                                 .resizable()
-                                .frame(width: 42, height: 43)
+                                .frame(width: 32, height: 32)
                                 .padding()
                         }
                         
@@ -76,7 +76,7 @@ struct FlashingView: View {
                         }) {
                             Image(isScreenPlaying ? "brightness" : "brightness-off")
                                 .resizable()
-                                .frame(width: 42, height: 42)
+                                .frame(width: 32, height: 32)
                                 .padding()
                         }
                     }
