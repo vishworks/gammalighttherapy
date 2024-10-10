@@ -3,26 +3,91 @@ import AVFoundation
 
 struct FlashingView: View {
     @State private var isFlashing = false
+    @State private var isFlashingAndAudio = false
+    @State private var isAudioPlaying = false
+    @State private var isScreenPlaying = false
     @State private var flashTimer: Timer?
     @State private var audioPlayerNode: AVAudioPlayerNode?
     private let flashRate: Double = 1.0 / 40.0
     private var audioEngine = AVAudioEngine()
 
     var body: some View {
-        VStack {
-            Toggle("Enable Flashing", isOn: $isFlashing)
-                .padding()
-        }
-        .onChange(of: isFlashing) { newValue in
-            if newValue {
-                startFlashing()
-                play40HzSound()
-            } else {
-                stopFlashing()
-                stopSound()
+            ZStack {
+                Image("logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+                    .padding()
+
+                VStack {
+                    Spacer()
+                    
+                    HStack {
+                        Button(action: {
+                            isFlashing.toggle()
+                            if isFlashing {
+                                startFlashing()
+                            } else {
+                                stopFlashing()
+                            }
+                        }) {
+                            Image(systemName: isFlashing ? "lightbulb.fill" : "lightbulb")
+                                .resizable()
+                                .frame(width: 30, height: 40)
+                                .foregroundColor(isFlashing ? .yellow : Color(hex: "f0f0f0"))
+                                .padding()
+                        }
+
+                        Button(action: {
+                            isAudioPlaying.toggle()
+                            if isAudioPlaying {
+                                play40HzSound()
+                            } else {
+                                stopSound()
+                            }
+                        }) {
+                            Image(systemName: isAudioPlaying ? "speaker.fill" : "speaker.slash.fill")
+                                .resizable()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(isAudioPlaying ? .blue : Color(hex: "f0f0f0"))
+                                .padding()
+                        }
+                        
+                        Button(action: {
+                            isFlashing.toggle()
+                            isAudioPlaying.toggle()
+                            isFlashingAndAudio.toggle()
+                            if isFlashing {
+                                startFlashing()
+                                play40HzSound()
+                            } else {
+                                stopFlashing()
+                                stopSound()
+                            }
+                        }) {
+                            Image(isFlashingAndAudio ? "competence" : "competence-off")
+                                .resizable()
+                                .frame(width: 42, height: 43)
+                                .padding()
+                        }
+                        
+                        Button(action: {
+                            isScreenPlaying.toggle()
+                        }) {
+                            Image(isScreenPlaying ? "brightness" : "brightness-off")
+                                .resizable()
+                                .frame(width: 42, height: 42)
+                                .padding()
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(Color(hex: "2f2f2f"))
+                    .cornerRadius(10)
+                }
             }
+            .edgesIgnoringSafeArea(.bottom)
         }
-    }
+
 
     private func startFlashing() {
         flashTimer = Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { _ in
@@ -112,7 +177,12 @@ struct FlashingView: View {
 
 struct ContentView: View {
     var body: some View {
-        FlashingView()
+        VStack {
+            FlashingView()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: "212121"))
+        .edgesIgnoringSafeArea(.all)
     }
 }
 
