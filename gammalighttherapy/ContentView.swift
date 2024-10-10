@@ -10,6 +10,8 @@ struct FlashingView: View {
     @State private var audioPlayerNode: AVAudioPlayerNode?
     private let flashRate: Double = 1.0 / 40.0
     private var audioEngine = AVAudioEngine()
+    let hapticManager = HapticManager()
+
 
     var body: some View {
             ZStack {
@@ -27,8 +29,10 @@ struct FlashingView: View {
                             isFlashing.toggle()
                             if isFlashing {
                                 startFlashing()
+                                hapticManager.playHapticAt40Hz()
                             } else {
                                 stopFlashing()
+                                hapticManager.stopHaptic()
                             }
                         }) {
                             Image(systemName: isFlashing ? "lightbulb.fill" : "lightbulb")
