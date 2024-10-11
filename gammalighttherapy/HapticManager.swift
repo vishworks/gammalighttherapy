@@ -1,17 +1,16 @@
 //
-//  HapticManager.swift
+//  FlashLightManager.swift
 //  gammalighttherapy
 //
-//  Created by Tamilarasan on 10/10/24.
+//  Created by Tamilarasan on 11/10/24.
 //
-
 import CoreHaptics
 import SwiftUI
 
 class HapticManager {
     private var hapticEngine: CHHapticEngine?
-    private var hapticPlayer: CHHapticPatternPlayer?
-
+    private var hapticTimer: Timer?
+    
     init() {
         prepareHaptics()
     }
@@ -27,35 +26,33 @@ class HapticManager {
 
     func playHapticAt40Hz() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-        
-        var events = [CHHapticEvent]()
-        
-        // 40Hz means a vibration every 0.025 seconds (1/40 seconds)
-        let duration: TimeInterval = 0.025
-        
-        for i in stride(from: 0.0, to: 1.0, by: duration) {
-            let event = CHHapticEvent(eventType: .hapticContinuous, parameters: [
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
-            ], relativeTime: i, duration: duration)
-            
-            events.append(event)
+
+        hapticTimer = Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { [weak self] _ in
+            self?.triggerHapticFeedback()
         }
+    }
+
+    private func triggerHapticFeedback() {
+        guard let engine = hapticEngine else { return }
+
+        let sharpness: Float = 0.5
+        let intensity: Float = 1.0
+        let event = CHHapticEvent(eventType: .hapticTransient, parameters: [
+            CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+            CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+        ], relativeTime: 0)
 
         do {
-            let pattern = try CHHapticPattern(events: events, parameters: [])
-            hapticPlayer = try hapticEngine?.makePlayer(with: pattern)
-            try hapticPlayer?.start(atTime: 0)
+            let pattern = try CHHapticPattern(events: [event], parameters: [])
+            let player = try engine.makePlayer(with: pattern)
+            try player.start(atTime: 0)
         } catch {
-            print("Failed to play pattern: \(error.localizedDescription)")
+            print("Failed to play haptic event: \(error.localizedDescription)")
         }
     }
 
     func stopHaptic() {
-        do {
-            try hapticPlayer?.stop(atTime: CHHapticTimeImmediate)
-        } catch {
-            print("Failed to stop haptic pattern: \(error.localizedDescription)")
-        }
+        hapticTimer?.invalidate()
+        hapticTimer = nil
     }
 }

@@ -8,15 +8,17 @@
 import SwiftUI
 import AVFoundation
 
-
 class FlashLightManager {
     private var flashTimer: Timer?
     private let flashRate: Double = 1.0 / 40.0
     
     func startFlashing() {
         flashTimer = Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { _ in
+            print("Flash ON at: \(Date())")
             self.toggleTorch(on: true)
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + self.flashRate) {
+                print("Flash OFF at: \(Date())")
                 self.toggleTorch(on: false)
             }
         }
@@ -26,6 +28,7 @@ class FlashLightManager {
         self.toggleTorch(on: false)
         flashTimer?.invalidate()
         flashTimer = nil
+        print("Flashing Stopped at: \(Date())")
     }
 
     private func toggleTorch(on: Bool) {
