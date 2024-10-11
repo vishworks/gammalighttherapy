@@ -2,26 +2,17 @@ import SwiftUI
 import AVFoundation
 
 struct FlashingView: View {
-    @State private var isFlashing = false
-    @State private var isFlashingAndAudio = false
-    @State private var isAudioPlaying = false
     @State private var isScreenPlaying = false
-    @State private var flashTimer: Timer?
-    @State private var audioPlayerNode: AVAudioPlayerNode?
-    private let flashRate: Double = 1.0 / 40.0
-    private var audioEngine = AVAudioEngine()
-    let hapticManager = HapticManager()
-    let fashLightManager = FlashLightManager()
-    let audioManager = AudioManager()
-    
     @State private var isScreenFlickering = false
-
+    @State private var screenFlashTimer: Timer?
+    private let screenFlashRate: Double = 1.0 / 40.0
+    
     var body: some View {
         ZStack {
             if isScreenPlaying {
                 Color(isScreenFlickering ? .black : .white)
                     .edgesIgnoringSafeArea(.all)
-                    .animation(.easeInOut(duration: flashRate), value: isScreenFlickering)
+                    .animation(.easeInOut(duration: screenFlashRate), value: isScreenFlickering)
             } else {
                 Color(hex: "212121").edgesIgnoringSafeArea(.all)
             }
@@ -35,61 +26,14 @@ struct FlashingView: View {
                         .scaledToFit()
                         .frame(width: 200, height: 200)
                         .padding()
-                        
                 }
 
                 Spacer()
 
                 HStack {
-                    Button(action: {
-                        isFlashing.toggle()
-                        if isFlashing {
-                            startFlashing()
-                            hapticManager.playHapticAt40Hz()
-                        } else {
-                            stopFlashing()
-                            hapticManager.stopHaptic()
-                        }
-                    }) {
-                        Image(systemName: isFlashing ? "lightbulb.fill" : "lightbulb")
-                            .resizable()
-                            .frame(width: 25, height: 32)
-                            .foregroundColor(isFlashing ? .yellow : Color(hex: "f0f0f0"))
-                            .padding()
-                    }
-
-                    Button(action: {
-                        isAudioPlaying.toggle()
-                        if isAudioPlaying {
-                            play40HzSound()
-                        } else {
-                            stopSound()
-                        }
-                    }) {
-                        Image(systemName: isAudioPlaying ? "speaker.fill" : "speaker.slash.fill")
-                            .resizable()
-                            .frame(width: 32, height: 32)
-                            .foregroundColor(isAudioPlaying ? .blue : Color(hex: "f0f0f0"))
-                            .padding()
-                    }
-
-                    Button(action: {
-                        isFlashing.toggle()
-                        isAudioPlaying.toggle()
-                        isFlashingAndAudio.toggle()
-                        if isFlashing {
-                            startFlashing()
-                            play40HzSound()
-                        } else {
-                            stopFlashing()
-                            stopSound()
-                        }
-                    }) {
-                        Image(isFlashingAndAudio ? "competence" : "competence-off")
-                            .resizable()
-                            .frame(width: 32, height: 32)
-                            .padding()
-                    }
+                    FlashLightView()
+                    AudioView()
+                    CombinedView()
 
                     Button(action: {
                         isScreenPlaying.toggle()
@@ -115,33 +59,18 @@ struct FlashingView: View {
         }
     }
 
-    private func startFlashing() {
-        fashLightManager.startFlashing()
-    }
-
-    private func stopFlashing() {
-        fashLightManager.stopFlashing()
-    }
-
-    private func stopSound() {
-        audioManager.stopSound()
-    }
-
-    private func play40HzSound() {
-        audioManager.playSound()
-    }
 
     private func startFlickering() {
         isScreenFlickering = true
-        flashTimer = Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { _ in
+        screenFlashTimer = Timer.scheduledTimer(withTimeInterval: screenFlashRate, repeats: true) { _ in
             isScreenFlickering.toggle()
         }
     }
 
     private func stopFlickering() {
         isScreenFlickering = false
-        flashTimer?.invalidate()
-        flashTimer = nil
+        screenFlashTimer?.invalidate()
+        screenFlashTimer = nil
     }
 
     private func toggleScreenFlickering() {
