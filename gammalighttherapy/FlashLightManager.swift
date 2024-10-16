@@ -9,37 +9,56 @@ import SwiftUI
 import AVFoundation
 
 class FlashLightManager {
-    private var flashTimer: Timer?
+    private var flashTimer: DispatchSourceTimer?
     private let flashRate: Double = 1.0 / 40.0
+    private var isTimerSuspended = false // Track the timer's suspend state
+    private var isFlashlightOn = false
     
     func startFlashing() {
-        flashTimer = Timer.scheduledTimer(withTimeInterval: flashRate, repeats: true) { _ in
-            self.toggleTorch(on: true)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + self.flashRate) {
-                self.toggleTorch(on: false)
+            if (flashTimer == nil) {
+                flashTimer = DispatchSource.makeTimerSource()
+                
+                // Set the timer to fire every 0.025 seconds (40Hz)
+                flashTimer?.schedule(deadline: .now(), repeating: self.flashRate)
+
+                flashTimer?.setEventHandler { [weak self] in
+                    self?.toggleTorch()
+                }
+                
+                // Start the timer
+                flashTimer?.activate()
+
             }
-        }
+            else if (isTimerSuspended){
+                flashTimer?.resume()
+            }
+            isTimerSuspended = false
     }
 
     func stopFlashing() {
-        self.toggleTorch(on: false)
-        flashTimer?.invalidate()
-        flashTimer = nil
+        self.toggleTorch(turnOff: true)
+        self.isTimerSuspended = true
+        self.flashTimer?.suspend()
     }
 
-    private func toggleTorch(on: Bool) {
-        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+
+    private func toggleTorch(turnOff: Bool = false) {
+        guard let device = AVCaptureDevice.default(for: .video),
+              device.hasTorch else { return }
+        
         do {
             try device.lockForConfiguration()
-            if on {
-                try device.setTorchModeOn(level: 1.0)
-            } else {
+            if (turnOff) {
                 device.torchMode = .off
+            } else{
+                device.torchMode = turnOff || !isFlashlightOn ? .off : .on
+                try device.setTorchModeOn(level: 1.0) // Set brightness to maximum
             }
+            isFlashlightOn.toggle()
             device.unlockForConfiguration()
         } catch {
-            print("Torch could not be used: \(error)")
+            print("Error toggling flashlight: \(error)")
         }
     }
+        
 }
