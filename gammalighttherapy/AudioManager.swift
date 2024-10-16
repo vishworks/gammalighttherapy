@@ -28,7 +28,7 @@ class AudioManager {
 
         let sampleRate = 44100.0
         let frequency = 40.0
-        let amplitude = 0.5
+        let amplitude = 1.0
         let duration = 1.0
         let frameCount = Int(sampleRate * duration)
 
