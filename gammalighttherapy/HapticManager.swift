@@ -9,7 +9,8 @@ import SwiftUI
 
 class HapticManager {
     private var hapticEngine: CHHapticEngine?
-    private var hapticTimer: Timer?
+    private var hapticTimer: DispatchSourceTimer?
+    private var isTimerSuspended = false // Track the timer's suspend state
     
     init() {
         prepareHaptics()
@@ -26,10 +27,26 @@ class HapticManager {
 
     func playHapticAt40Hz() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        if (hapticTimer == nil) {
+            hapticTimer = DispatchSource.makeTimerSource()
+            
+            // Set the timer to fire every 0.025 seconds (40Hz)
+            hapticTimer?.schedule(deadline: .now(), repeating: 0.025)
 
-        hapticTimer = Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { [weak self] _ in
-            self?.triggerHapticFeedback()
+            hapticTimer?.setEventHandler { [weak self] in
+                self?.triggerHapticFeedback()
+            }
+            
+            // Start the timer
+            hapticTimer?.activate()
+
+
         }
+        else if (isTimerSuspended){
+            hapticTimer?.resume()
+        }
+        isTimerSuspended = false
     }
 
     private func triggerHapticFeedback() {
@@ -52,7 +69,7 @@ class HapticManager {
     }
 
     func stopHaptic() {
-        hapticTimer?.invalidate()
-        hapticTimer = nil
+        isTimerSuspended = true
+        hapticTimer?.suspend()
     }
 }
